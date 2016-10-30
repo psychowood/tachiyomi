@@ -112,6 +112,8 @@ class PreferencesHelper(context: Context) {
                 .apply()
     }
 
+    fun anilistScoreType() = rxPrefs.getInteger("anilist_score_type", 0)
+
     fun downloadsDirectory() = rxPrefs.getString(keys.downloadsDirectory, defaultDownloadsDir.absolutePath)
 
     fun downloadThreads() = rxPrefs.getInteger(keys.downloadThreads, 1)
