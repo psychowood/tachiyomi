@@ -23,7 +23,6 @@ import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
 import timber.log.Timber
 import uy.kohesive.injekt.injectLazy
-import java.io.File
 import java.util.*
 
 /**
@@ -333,8 +332,9 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
         if (page != null && source is OnlineSource) {
             page.status = Page.QUEUE
             val path = page.imagePath
-            if (!path.isNullOrEmpty() && !page.chapter.isDownloaded) {
-                chapterCache.removeFileFromCache(File(path).name)
+            if (path != null && !page.chapter.isDownloaded) {
+                // TODO test
+                chapterCache.removeFileFromCache(path.encodedPath.substringAfterLast('/'))
             }
             loader.retryPage(page)
         }
