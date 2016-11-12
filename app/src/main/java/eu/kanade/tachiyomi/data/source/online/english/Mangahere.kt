@@ -79,6 +79,16 @@ class Mangahere(override val id: Int) : ParsedOnlineSource() {
 
     override fun chapterListSelector() = ".detail_list > ul:not([class]) > li"
 
+    override fun prepareNewChapter(chapter: Chapter, manga: Manga) {
+
+        val prefix = manga.title + " "
+        if (chapter.name.startsWith(prefix)){
+            chapter.name = chapter.name.replaceFirst(prefix,"")
+        }
+
+        super.prepareNewChapter(chapter, manga)
+    }
+
     override fun chapterFromElement(element: Element, chapter: Chapter) {
         val parentEl = element.select("span.left").first()
 
