@@ -7,6 +7,7 @@ import eu.kanade.tachiyomi.data.database.DbProvider
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.database.resolvers.LibraryMangaGetResolver
 import eu.kanade.tachiyomi.data.database.resolvers.MangaFlagsPutResolver
+import eu.kanade.tachiyomi.data.database.resolvers.MangaLastUpdatedPutResolver
 import eu.kanade.tachiyomi.data.database.tables.ChapterTable
 import eu.kanade.tachiyomi.data.database.tables.MangaCategoryTable
 import eu.kanade.tachiyomi.data.database.tables.MangaTable
@@ -29,7 +30,7 @@ interface MangaQueries : DbProvider {
             .withGetResolver(LibraryMangaGetResolver.INSTANCE)
             .prepare()
 
-    open fun getFavoriteMangas() = db.get()
+    fun getFavoriteMangas() = db.get()
             .listOfObjects(Manga::class.java)
             .withQuery(Query.builder()
                     .table(MangaTable.TABLE)
@@ -66,6 +67,11 @@ interface MangaQueries : DbProvider {
             .withPutResolver(MangaFlagsPutResolver())
             .prepare()
 
+    fun updateLastUpdated(manga: Manga) = db.put()
+            .`object`(manga)
+            .withPutResolver(MangaLastUpdatedPutResolver())
+            .prepare()
+
     fun deleteManga(manga: Manga) = db.delete().`object`(manga).prepare()
 
     fun deleteMangas(mangas: List<Manga>) = db.delete().objects(mangas).prepare()
@@ -78,4 +84,11 @@ interface MangaQueries : DbProvider {
                     .build())
             .prepare()
 
+    fun getLastReadManga() = db.get()
+            .listOfObjects(Manga::class.java)
+            .withQuery(RawQuery.builder()
+                    .query(getLastReadMangaQuery())
+                    .observesTables(MangaTable.TABLE)
+                    .build())
+            .prepare()
 }

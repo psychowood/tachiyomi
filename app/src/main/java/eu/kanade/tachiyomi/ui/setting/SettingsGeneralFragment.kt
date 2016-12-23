@@ -9,6 +9,7 @@ import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.DatabaseHelper
 import eu.kanade.tachiyomi.data.library.LibraryUpdateJob
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
+import eu.kanade.tachiyomi.util.LocaleHelper
 import eu.kanade.tachiyomi.util.plusAssign
 import eu.kanade.tachiyomi.widget.preference.IntListPreference
 import eu.kanade.tachiyomi.widget.preference.LibraryColumnsDialog
@@ -44,6 +45,8 @@ class SettingsGeneralFragment : SettingsFragment(),
 
     val categoryUpdate: MultiSelectListPreference by bindPref(R.string.pref_library_update_categories_key)
 
+    val langPreference: IntListPreference by bindPref(R.string.pref_language_key)
+
     override fun onViewCreated(view: View, savedState: Bundle?) {
         super.onViewCreated(view, savedState)
 
@@ -57,12 +60,13 @@ class SettingsGeneralFragment : SettingsFragment(),
                 .subscribe { updateColumnsSummary(it.first, it.second) }
 
         updateInterval.setOnPreferenceChangeListener { preference, newValue ->
-            val interval = (newValue as String).toInt()
-            if (interval > 0)
-                LibraryUpdateJob.setupTask(interval)
-            else
-                LibraryUpdateJob.cancelTask()
+            // Always cancel the previous task, it seems that sometimes they are not updated.
+            LibraryUpdateJob.cancelTask()
 
+            val interval = (newValue as String).toInt()
+            if (interval > 0) {
+                LibraryUpdateJob.setupTask(interval)
+            }
             true
         }
 
@@ -100,6 +104,15 @@ class SettingsGeneralFragment : SettingsFragment(),
             activity.recreate()
             true
         }
+
+        langPreference.setOnPreferenceChangeListener { preference, newValue ->
+            (activity as SettingsActivity).parentFlags = SettingsActivity.FLAG_LANG_CHANGED
+            LocaleHelper.changeLocale(newValue.toString().toInt())
+            LocaleHelper.updateCfg(activity.application, activity.baseContext.resources.configuration)
+            activity.recreate()
+            true
+        }
+
     }
 
     override fun onPreferenceDisplayDialog(p0: PreferenceFragmentCompat?, p: Preference): Boolean {

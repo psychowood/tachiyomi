@@ -1,36 +1,30 @@
 package eu.kanade.tachiyomi.data.preference
 
 import android.content.Context
+import android.net.Uri
 import android.os.Environment
 import android.preference.PreferenceManager
 import com.f2prateek.rx.preferences.Preference
 import com.f2prateek.rx.preferences.RxSharedPreferences
 import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.data.mangasync.MangaSyncService
 import eu.kanade.tachiyomi.data.source.Source
+import eu.kanade.tachiyomi.data.track.TrackService
 import java.io.File
-import java.io.IOException
 
 fun <T> Preference<T>.getOrDefault(): T = get() ?: defaultValue()!!
 
-class PreferencesHelper(context: Context) {
+fun Preference<Boolean>.invert(): Boolean = getOrDefault().let { set(!it); !it }
+
+class PreferencesHelper(val context: Context) {
 
     val keys = PreferenceKeys(context)
 
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
     private val rxPrefs = RxSharedPreferences.create(prefs)
 
-    private val defaultDownloadsDir = File(Environment.getExternalStorageDirectory().absolutePath +
-            File.separator + context.getString(R.string.app_name), "downloads")
-
-    init {
-        // Don't display downloaded chapters in gallery apps creating a ".nomedia" file
-        try {
-            File(downloadsDirectory().getOrDefault(), ".nomedia").createNewFile()
-        } catch (e: IOException) {
-            /* Ignore */
-        }
-    }
+    private val defaultDownloadsDir = Uri.fromFile(
+            File(Environment.getExternalStorageDirectory().absolutePath + File.separator +
+                    context.getString(R.string.app_name), "downloads"))
 
     fun startScreen() = prefs.getInt(keys.startScreen, 1)
 
@@ -76,9 +70,9 @@ class PreferencesHelper(context: Context) {
 
     fun updateOnlyNonCompleted() = prefs.getBoolean(keys.updateOnlyNonCompleted, false)
 
-    fun autoUpdateMangaSync() = prefs.getBoolean(keys.autoUpdateMangaSync, true)
+    fun autoUpdateTrack() = prefs.getBoolean(keys.autoUpdateTrack, true)
 
-    fun askUpdateMangaSync() = prefs.getBoolean(keys.askUpdateMangaSync, false)
+    fun askUpdateTrack() = prefs.getBoolean(keys.askUpdateTrack, false)
 
     fun lastUsedCatalogueSource() = rxPrefs.getInteger(keys.lastUsedCatalogueSource, -1)
 
@@ -101,18 +95,22 @@ class PreferencesHelper(context: Context) {
                 .apply()
     }
 
-    fun mangaSyncUsername(sync: MangaSyncService) = prefs.getString(keys.syncUsername(sync.id), "")
+    fun trackUsername(sync: TrackService) = prefs.getString(keys.trackUsername(sync.id), "")
 
-    fun mangaSyncPassword(sync: MangaSyncService) = prefs.getString(keys.syncPassword(sync.id), "")
+    fun trackPassword(sync: TrackService) = prefs.getString(keys.trackPassword(sync.id), "")
 
-    fun setMangaSyncCredentials(sync: MangaSyncService, username: String, password: String) {
+    fun setTrackCredentials(sync: TrackService, username: String, password: String) {
         prefs.edit()
-                .putString(keys.syncUsername(sync.id), username)
-                .putString(keys.syncPassword(sync.id), password)
+                .putString(keys.trackUsername(sync.id), username)
+                .putString(keys.trackPassword(sync.id), password)
                 .apply()
     }
 
-    fun downloadsDirectory() = rxPrefs.getString(keys.downloadsDirectory, defaultDownloadsDir.absolutePath)
+    fun trackToken(sync: TrackService) = rxPrefs.getString(keys.trackToken(sync.id), "")
+
+    fun anilistScoreType() = rxPrefs.getInteger("anilist_score_type", 0)
+
+    fun downloadsDirectory() = rxPrefs.getString(keys.downloadsDirectory, defaultDownloadsDir.toString())
 
     fun downloadThreads() = rxPrefs.getInteger(keys.downloadThreads, 1)
 
@@ -134,8 +132,16 @@ class PreferencesHelper(context: Context) {
 
     fun filterUnread() = rxPrefs.getBoolean(keys.filterUnread, false)
 
+    fun librarySortingMode() = rxPrefs.getInteger(keys.librarySortingMode, 0)
+
+    fun librarySortingAscending() = rxPrefs.getBoolean("library_sorting_ascending", true)
+
     fun automaticUpdates() = prefs.getBoolean(keys.automaticUpdates, false)
 
     fun hiddenCatalogues() = rxPrefs.getStringSet("hidden_catalogues", emptySet())
+
+    fun downloadNew() = prefs.getBoolean(keys.downloadNew, false)
+
+    fun lang() = prefs.getInt(keys.lang, 0)
 
 }

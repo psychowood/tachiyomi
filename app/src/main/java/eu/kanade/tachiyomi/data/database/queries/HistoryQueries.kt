@@ -40,7 +40,6 @@ interface HistoryQueries : DbProvider {
                     .build())
             .prepare()
 
-
     /**
      * Updates the history last read.
      * Inserts history object if not yet in database

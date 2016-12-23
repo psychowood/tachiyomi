@@ -11,6 +11,7 @@ import eu.kanade.tachiyomi.ui.reader.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.viewer.base.BaseReader
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.horizontal.LeftToRightReader
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.horizontal.RightToLeftReader
+import eu.kanade.tachiyomi.util.toast
 import rx.subscriptions.CompositeSubscription
 
 /**
@@ -65,7 +66,7 @@ abstract class PagerReader : BaseReader() {
     /**
      * Gesture detector for touch events.
      */
-    val gestureDetector by lazy { createGestureDetector() }
+    val gestureDetector by lazy { GestureDetector(context, ImageGestureListener()) }
 
     /**
      * Subscriptions for reader settings.
@@ -165,27 +166,24 @@ abstract class PagerReader : BaseReader() {
     }
 
     /**
-     * Creates the gesture detector for the pager.
-     *
-     * @return a gesture detector.
+     * Gesture detector for Subsampling Scale Image View.
      */
-    protected fun createGestureDetector(): GestureDetector {
-        return GestureDetector(activity, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (isAdded) {
-                    val positionX = e.x
+    inner class ImageGestureListener : GestureDetector.SimpleOnGestureListener() {
 
-                    if (positionX < pager.width * LEFT_REGION) {
-                        if (tappingEnabled) onLeftSideTap()
-                    } else if (positionX > pager.width * RIGHT_REGION) {
-                        if (tappingEnabled) onRightSideTap()
-                    } else {
-                        readerActivity.toggleMenu()
-                    }
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            if (isAdded) {
+                val positionX = e.x
+
+                if (positionX < pager.width * LEFT_REGION) {
+                    if (tappingEnabled) moveLeft()
+                } else if (positionX > pager.width * RIGHT_REGION) {
+                    if (tappingEnabled) moveRight()
+                } else {
+                    readerActivity.toggleMenu()
                 }
-                return true
             }
-        })
+            return true
+        }
     }
 
     /**
@@ -247,23 +245,23 @@ abstract class PagerReader : BaseReader() {
     }
 
     /**
-     * Called when the left side of the screen was clicked.
+     * Moves a page to the right.
      */
-    protected open fun onLeftSideTap() {
-        moveToPrevious()
+    override fun moveRight() {
+        moveToNext()
     }
 
     /**
-     * Called when the right side of the screen was clicked.
+     * Moves a page to the left.
      */
-    protected open fun onRightSideTap() {
-        moveToNext()
+    override fun moveLeft() {
+        moveToPrevious()
     }
 
     /**
      * Moves to the next page or requests the next chapter if it's the last one.
      */
-    override fun moveToNext() {
+    protected fun moveToNext() {
         if (pager.currentItem != pager.adapter.count - 1) {
             pager.setCurrentItem(pager.currentItem + 1, transitions)
         } else {
@@ -274,7 +272,7 @@ abstract class PagerReader : BaseReader() {
     /**
      * Moves to the previous page or requests the previous chapter if it's the first one.
      */
-    override fun moveToPrevious() {
+    protected fun moveToPrevious() {
         if (pager.currentItem != 0) {
             pager.setCurrentItem(pager.currentItem - 1, transitions)
         } else {

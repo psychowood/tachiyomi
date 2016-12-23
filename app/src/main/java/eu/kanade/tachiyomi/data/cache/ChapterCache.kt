@@ -2,18 +2,18 @@ package eu.kanade.tachiyomi.data.cache
 
 import android.content.Context
 import android.text.format.Formatter
+import com.github.salomonbrys.kotson.fromJson
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.jakewharton.disklrucache.DiskLruCache
 import eu.kanade.tachiyomi.data.source.model.Page
-import eu.kanade.tachiyomi.util.DiskUtils
+import eu.kanade.tachiyomi.util.DiskUtil
 import eu.kanade.tachiyomi.util.saveTo
 import okhttp3.Response
 import okio.Okio
 import rx.Observable
+import uy.kohesive.injekt.injectLazy
 import java.io.File
 import java.io.IOException
-import java.lang.reflect.Type
 
 /**
  * Class used to create chapter cache
@@ -25,15 +25,6 @@ import java.lang.reflect.Type
  * @constructor creates an instance of the chapter cache.
  */
 class ChapterCache(private val context: Context) {
-
-    /** Google Json class used for parsing JSON files.  */
-    private val gson: Gson = Gson()
-
-    /** Cache class used for cache management.  */
-    private val diskCache: DiskLruCache
-
-    /** Page list collection used for deserializing from JSON.  */
-    private val pageListCollection: Type = object : TypeToken<List<Page>>() {}.type
 
     companion object {
         /** Name of cache directory.  */
@@ -49,38 +40,37 @@ class ChapterCache(private val context: Context) {
         const val PARAMETER_CACHE_SIZE = 75L * 1024 * 1024
     }
 
-    init {
-        // Open cache in default cache directory.
-        diskCache = DiskLruCache.open(
-                File(context.cacheDir, PARAMETER_CACHE_DIRECTORY),
-                PARAMETER_APP_VERSION,
-                PARAMETER_VALUE_COUNT,
-                PARAMETER_CACHE_SIZE)
-    }
+    /** Google Json class used for parsing JSON files.  */
+    private val gson: Gson by injectLazy()
+
+    /** Cache class used for cache management.  */
+    private val diskCache = DiskLruCache.open(
+            File(context.externalCacheDir, PARAMETER_CACHE_DIRECTORY),
+            PARAMETER_APP_VERSION,
+            PARAMETER_VALUE_COUNT,
+            PARAMETER_CACHE_SIZE)
 
     /**
      * Returns directory of cache.
-     * @return directory of cache.
      */
     val cacheDir: File
         get() = diskCache.directory
 
     /**
      * Returns real size of directory.
-     * @return real size of directory.
      */
     private val realSize: Long
-        get() = DiskUtils.getDirectorySize(cacheDir)
+        get() = DiskUtil.getDirectorySize(cacheDir)
 
     /**
      * Returns real size of directory in human readable format.
-     * @return real size of directory.
      */
     val readableSize: String
         get() = Formatter.formatFileSize(context, realSize)
 
     /**
      * Remove file from cache.
+     *
      * @param file name of file "md5.0".
      * @return status of deletion for the file.
      */
@@ -101,23 +91,25 @@ class ChapterCache(private val context: Context) {
 
     /**
      * Get page list from cache.
+     *
      * @param chapterUrl the url of the chapter.
      * @return an observable of the list of pages.
      */
     fun getPageListFromCache(chapterUrl: String): Observable<List<Page>> {
         return Observable.fromCallable<List<Page>> {
             // Get the key for the chapter.
-            val key = DiskUtils.hashKeyForDisk(chapterUrl)
+            val key = DiskUtil.hashKeyForDisk(chapterUrl)
 
             // Convert JSON string to list of objects. Throws an exception if snapshot is null
             diskCache.get(key).use {
-                gson.fromJson(it.getString(0), pageListCollection)
+                gson.fromJson<List<Page>>(it.getString(0))
             }
         }
     }
 
     /**
      * Add page list to disk cache.
+     *
      * @param chapterUrl the url of the chapter.
      * @param pages list of pages.
      */
@@ -130,7 +122,7 @@ class ChapterCache(private val context: Context) {
 
         try {
             // Get editor from md5 key.
-            val key = DiskUtils.hashKeyForDisk(chapterUrl)
+            val key = DiskUtil.hashKeyForDisk(chapterUrl)
             editor = diskCache.edit(key) ?: return
 
             // Write chapter urls to cache.
@@ -151,35 +143,34 @@ class ChapterCache(private val context: Context) {
     }
 
     /**
-     * Check if image is in cache.
+     * Returns true if image is in cache.
+     *
      * @param imageUrl url of image.
      * @return true if in cache otherwise false.
      */
     fun isImageInCache(imageUrl: String): Boolean {
         try {
-            return diskCache.get(DiskUtils.hashKeyForDisk(imageUrl)) != null
+            return diskCache.get(DiskUtil.hashKeyForDisk(imageUrl)) != null
         } catch (e: IOException) {
             return false
         }
     }
 
     /**
-     * Get image path from url.
+     * Get image file from url.
+     *
      * @param imageUrl url of image.
      * @return path of image.
      */
-    fun getImagePath(imageUrl: String): String? {
-        try {
-            // Get file from md5 key.
-            val imageName = DiskUtils.hashKeyForDisk(imageUrl) + ".0"
-            return File(diskCache.directory, imageName).canonicalPath
-        } catch (e: IOException) {
-            return null
-        }
+    fun getImageFile(imageUrl: String): File {
+        // Get file from md5 key.
+        val imageName = DiskUtil.hashKeyForDisk(imageUrl) + ".0"
+        return File(diskCache.directory, imageName)
     }
 
     /**
      * Add image to cache.
+     * 
      * @param imageUrl url of image.
      * @param response http response from page.
      * @throws IOException image error.
@@ -191,7 +182,7 @@ class ChapterCache(private val context: Context) {
 
         try {
             // Get editor from md5 key.
-            val key = DiskUtils.hashKeyForDisk(imageUrl)
+            val key = DiskUtil.hashKeyForDisk(imageUrl)
             editor = diskCache.edit(key) ?: throw IOException("Unable to edit key")
 
             // Get OutputStream and write image with Okio.

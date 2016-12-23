@@ -1,6 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
+      xmlns:app="http://schemas.android.com/apk/res-auto"
+      xmlns:tools="http://schemas.android.com/tools"
+      tools:context=".MainActivity">
 
     <item
         android:id="@+id/action_search"
@@ -13,36 +14,17 @@
         android:id="@+id/action_filter"
         android:icon="@drawable/ic_filter_list_white_24dp"
         android:title="@string/action_filter"
-        app:showAsAction="ifRoom">
-        <menu>
-            <item
-                android:id="@+id/action_filter_downloaded"
-                android:checkable="true"
-                android:title="@string/action_filter_downloaded"/>
-            <item
-                android:id="@+id/action_filter_unread"
-                android:checkable="true"
-                android:title="@string/action_filter_unread"/>
-            <item
-                android:id="@+id/action_filter_empty"
-                android:title="@string/action_filter_empty"/>
-        </menu>
-    </item>
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_update_library"
         android:icon="@drawable/ic_refresh_white_24dp"
         android:title="@string/action_update_library"
-        app:showAsAction="ifRoom" />
-
-    <item
-        android:id="@+id/action_library_display_mode"
-        android:title="@string/action_display_mode"
-        app:showAsAction="never"/>
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_edit_categories"
         android:title="@string/action_edit_categories"
-        app:showAsAction="never" />
+        app:showAsAction="never"/>
 
 </menu>

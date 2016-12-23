@@ -11,8 +11,8 @@ import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.ui.backup.BackupFragment
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 import eu.kanade.tachiyomi.ui.catalogue.CatalogueFragment
-import eu.kanade.tachiyomi.ui.latest_updates.LatestUpdatesFragment
 import eu.kanade.tachiyomi.ui.download.DownloadFragment
+import eu.kanade.tachiyomi.ui.latest_updates.LatestUpdatesFragment
 import eu.kanade.tachiyomi.ui.library.LibraryFragment
 import eu.kanade.tachiyomi.ui.recent_updates.RecentChaptersFragment
 import eu.kanade.tachiyomi.ui.recently_read.RecentlyReadFragment
@@ -79,7 +79,7 @@ class MainActivity : BaseActivity() {
             setSelectedDrawerItem(startScreenId)
 
             // Show changelog if needed
-            ChangelogDialogFragment.show(preferences, supportFragmentManager)
+            ChangelogDialogFragment.show(this, preferences, supportFragmentManager)
         }
     }
 
@@ -93,8 +93,12 @@ class MainActivity : BaseActivity() {
 
     override fun onBackPressed() {
         val fragment = supportFragmentManager.findFragmentById(R.id.frame_container)
-        if (fragment != null && fragment.tag.toInt() != startScreenId) {
-            setSelectedDrawerItem(startScreenId)
+        if (drawer.isDrawerOpen(GravityCompat.START) || drawer.isDrawerOpen(GravityCompat.END)) {
+            drawer.closeDrawers()
+        } else if (fragment != null && fragment.tag.toInt() != startScreenId) {
+            if (resumed) {
+                setSelectedDrawerItem(startScreenId)
+            }
         } else {
             super.onBackPressed()
         }
@@ -109,6 +113,8 @@ class MainActivity : BaseActivity() {
                         .startActivities()
             } else if (resultCode and SettingsActivity.FLAG_THEME_CHANGED != 0) {
                 // Delay activity recreation to avoid fragment leaks.
+                nav_view.post { recreate() }
+            } else if (resultCode and SettingsActivity.FLAG_LANG_CHANGED != 0) {
                 nav_view.post { recreate() }
             }
         } else {

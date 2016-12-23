@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
+import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
@@ -18,7 +19,6 @@ import rx.Subscription
 import rx.android.schedulers.AndroidSchedulers
 import rx.subjects.PublishSubject
 import rx.subjects.SerializedSubject
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
@@ -64,6 +64,7 @@ class WebtoonHolder(private val view: View, private val adapter: WebtoonAdapter)
             setBitmapDecoderClass(webtoonReader.bitmapDecoderClass)
             setVerticalScrollingParent(true)
             setOnTouchListener(adapter.touchListener)
+            setOnLongClickListener { webtoonReader.onLongClick(page) }
             setOnImageEventListener(object : SubsamplingScaleImageView.DefaultOnImageEventListener() {
                 override fun onReady() {
                     onImageDecoded()
@@ -242,14 +243,21 @@ class WebtoonHolder(private val view: View, private val adapter: WebtoonAdapter)
      * Called when the page is ready.
      */
     private fun setImage() = with(view) {
-        val path = page?.imagePath
-        if (path != null && File(path).exists()) {
-            progress_text.visibility = View.INVISIBLE
-            image_view.visibility = View.VISIBLE
-            image_view.setImage(ImageSource.uri(path))
-        } else {
+        val uri = page?.uri
+        if (uri == null) {
             page?.status = Page.ERROR
+            return
         }
+
+        val file = UniFile.fromUri(context, uri)
+        if (!file.exists()) {
+            page?.status = Page.ERROR
+            return
+        }
+
+        progress_text.visibility = View.INVISIBLE
+        image_view.visibility = View.VISIBLE
+        image_view.setImage(ImageSource.uri(file.uri))
     }
 
     /**

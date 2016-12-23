@@ -182,7 +182,7 @@ class ChaptersFragment : BaseRxFragment<ChaptersPresenter>(), ActionMode.Callbac
             initialFetchChapters()
 
         destroyActionModeIfNeeded()
-        adapter.setItems(chapters)
+        adapter.items = chapters
     }
 
     private fun initialFetchChapters() {
@@ -267,7 +267,7 @@ class ChaptersFragment : BaseRxFragment<ChaptersPresenter>(), ActionMode.Callbac
                 .itemsCallback { dialog, view, i, charSequence ->
 
                     fun getUnreadChaptersSorted() = presenter.chapters
-                            .filter { !it.read && !it.isDownloaded }
+                            .filter { !it.read && it.status == Download.NOT_DOWNLOADED }
                             .distinctBy { it.name }
                             .sortedByDescending { it.source_order }
 
@@ -360,7 +360,11 @@ class ChaptersFragment : BaseRxFragment<ChaptersPresenter>(), ActionMode.Callbac
     }
 
     fun markPreviousAsRead(chapter: ChapterModel) {
-        presenter.markPreviousChaptersAsRead(chapter)
+        val chapters = if (presenter.sortDescending()) adapter.items.reversed() else adapter.items
+        val chapterPos = chapters.indexOf(chapter)
+        if (chapterPos != -1) {
+            presenter.markChaptersRead(chapters.take(chapterPos), true)
+        }
     }
 
     fun downloadChapters(chapters: List<ChapterModel>) {
@@ -370,7 +374,7 @@ class ChaptersFragment : BaseRxFragment<ChaptersPresenter>(), ActionMode.Callbac
 
     fun bookmarkChapters(chapters: List<ChapterModel>, bookmarked: Boolean) {
         destroyActionModeIfNeeded()
-        presenter.bookmarkChapters(chapters,bookmarked)
+        presenter.bookmarkChapters(chapters, bookmarked)
     }
 
     fun deleteChapters(chapters: List<ChapterModel>) {
@@ -390,7 +394,8 @@ class ChaptersFragment : BaseRxFragment<ChaptersPresenter>(), ActionMode.Callbac
     }
 
     fun dismissDeletingDialog() {
-        (childFragmentManager.findFragmentByTag(DeletingChaptersDialog.TAG) as? DialogFragment)?.dismiss()
+        (childFragmentManager.findFragmentByTag(DeletingChaptersDialog.TAG) as? DialogFragment)
+                ?.dismissAllowingStateLoss()
     }
 
     override fun onListItemClick(position: Int): Boolean {

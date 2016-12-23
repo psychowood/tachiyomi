@@ -163,19 +163,19 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
     }
 
     override fun onBackPressed() {
-        val chapterToUpdate = presenter.getMangaSyncChapterToUpdate()
+        val chapterToUpdate = presenter.getTrackChapterToUpdate()
 
         if (chapterToUpdate > 0) {
-            if (preferences.askUpdateMangaSync()) {
+            if (preferences.askUpdateTrack()) {
                 MaterialDialog.Builder(this)
                         .content(getString(R.string.confirm_update_manga_sync, chapterToUpdate))
                         .positiveText(android.R.string.yes)
                         .negativeText(android.R.string.no)
-                        .onPositive { dialog, which -> presenter.updateMangaSyncLastChapterRead() }
+                        .onPositive { dialog, which -> presenter.updateTrackLastChapterRead() }
                         .onAny { dialog1, which1 -> super.onBackPressed() }
                         .show()
             } else {
-                presenter.updateMangaSyncLastChapterRead()
+                presenter.updateTrackLastChapterRead()
                 super.onBackPressed()
             }
         } else {
@@ -189,7 +189,7 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     if (volumeKeysEnabled) {
                         if (event.action == KeyEvent.ACTION_UP) {
-                            viewer?.moveToNext()
+                            viewer?.moveDown()
                         }
                         return true
                     }
@@ -197,7 +197,7 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
                 KeyEvent.KEYCODE_VOLUME_UP -> {
                     if (volumeKeysEnabled) {
                         if (event.action == KeyEvent.ACTION_UP) {
-                            viewer?.moveToPrevious()
+                            viewer?.moveUp()
                         }
                         return true
                     }
@@ -210,18 +210,35 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (!isFinishing) {
             when (keyCode) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> viewer?.moveToNext()
-                KeyEvent.KEYCODE_DPAD_LEFT -> viewer?.moveToPrevious()
+                KeyEvent.KEYCODE_DPAD_RIGHT -> viewer?.moveRight()
+                KeyEvent.KEYCODE_DPAD_LEFT -> viewer?.moveLeft()
+                KeyEvent.KEYCODE_DPAD_DOWN -> viewer?.moveDown()
+                KeyEvent.KEYCODE_DPAD_UP -> viewer?.moveUp()
                 KeyEvent.KEYCODE_MENU -> toggleMenu()
+                else -> return super.onKeyUp(keyCode, event)
             }
         }
-        return super.onKeyUp(keyCode, event)
+        return true
     }
 
     fun onChapterError(error: Throwable) {
         Timber.e(error)
         finish()
         toast(error.message)
+    }
+
+    fun onLongClick(page: Page) {
+        MaterialDialog.Builder(this)
+                .title(getString(R.string.options))
+                .items(R.array.reader_image_options)
+                .itemsIds(R.array.reader_image_options_values)
+                .itemsCallback { materialDialog, view, i, charSequence ->
+                    when (i) {
+                        0 -> setImageAsCover(page)
+                        1 -> shareImage(page)
+                        2 -> presenter.savePage(page)
+                    }
+                }.show()
     }
 
     fun onChapterAppendError() {
@@ -250,7 +267,7 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
         val activePage = pages.getOrElse(chapter.requestedPage) { pages.first() }
 
         viewer?.onPageListReady(chapter, activePage)
-        setActiveChapter(chapter, activePage.pageNumber)
+        setActiveChapter(chapter, activePage.index)
     }
 
     fun onEnterChapter(chapter: ReaderChapter, currentPage: Int) {
@@ -299,14 +316,14 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
         val mangaViewer = if (manga.viewer == 0) preferences.defaultViewer() else manga.viewer
 
         // Try to reuse the viewer using its tag
-        var fragment: BaseReader? = supportFragmentManager.findFragmentByTag(manga.viewer.toString()) as? BaseReader
+        var fragment = supportFragmentManager.findFragmentByTag(manga.viewer.toString()) as? BaseReader
         if (fragment == null) {
             // Create a new viewer
-            when (mangaViewer) {
-                RIGHT_TO_LEFT -> fragment = RightToLeftReader()
-                VERTICAL -> fragment = VerticalReader()
-                WEBTOON -> fragment = WebtoonReader()
-                else -> fragment = LeftToRightReader()
+            fragment = when (mangaViewer) {
+                RIGHT_TO_LEFT -> RightToLeftReader()
+                VERTICAL -> VerticalReader()
+                WEBTOON -> WebtoonReader()
+                else -> LeftToRightReader()
             }
 
             supportFragmentManager.beginTransaction().replace(R.id.reader, fragment, manga.viewer.toString()).commit()
@@ -317,7 +334,7 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
     fun onPageChanged(page: Page) {
         presenter.onPageChanged(page)
 
-        val pageNumber = page.pageNumber + 1
+        val pageNumber = page.number
         val pageCount = page.chapter.pages!!.size
         page_number.text = "$pageNumber/$pageCount"
         if (page_seekbar.rotation != 180f) {
@@ -325,7 +342,7 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
         } else {
             right_page_text.text = "$pageNumber"
         }
-        page_seekbar.progress = page.pageNumber
+        page_seekbar.progress = page.index
     }
 
     fun gotoPageInCurrentChapter(pageIndex: Int) {
@@ -537,6 +554,41 @@ class ReaderActivity : BaseRxActivity<ReaderPresenter>() {
                 reader_menu_bottom.startAnimation(bottomMenuAnimation)
             }
         }
+    }
+
+    /**
+     * Start a share intent that lets user share image
+     *
+     * @param page page object containing image information.
+     */
+    private fun shareImage(page: Page) {
+        if (page.status != Page.READY)
+            return
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_STREAM, page.uri)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            type = "image/*"
+        }
+        startActivity(Intent.createChooser(intent, getString(R.string.action_share)))
+    }
+
+    /**
+     * Sets the given page as the cover of the manga.
+     *
+     * @param page the page containing the image to set as cover.
+     */
+    private fun setImageAsCover(page: Page) {
+        if (page.status != Page.READY)
+            return
+
+        MaterialDialog.Builder(this)
+                .content(getString(R.string.confirm_set_image_as_cover))
+                .positiveText(android.R.string.yes)
+                .negativeText(android.R.string.no)
+                .onPositive { dialog, which -> presenter.setImageAsCover(page) }
+                .show()
+
     }
 
 }

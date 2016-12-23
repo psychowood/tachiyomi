@@ -5,7 +5,6 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.IBinder
 import android.os.PowerManager
@@ -14,17 +13,17 @@ import eu.kanade.tachiyomi.Constants
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.DatabaseHelper
 import eu.kanade.tachiyomi.data.database.models.Category
+import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.Manga
+import eu.kanade.tachiyomi.data.download.DownloadManager
+import eu.kanade.tachiyomi.data.download.DownloadService
 import eu.kanade.tachiyomi.data.library.LibraryUpdateService.Companion.start
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.data.preference.getOrDefault
 import eu.kanade.tachiyomi.data.source.SourceManager
 import eu.kanade.tachiyomi.data.source.online.OnlineSource
 import eu.kanade.tachiyomi.ui.main.MainActivity
-import eu.kanade.tachiyomi.util.AndroidComponentUtil
-import eu.kanade.tachiyomi.util.notification
-import eu.kanade.tachiyomi.util.notificationManager
-import eu.kanade.tachiyomi.util.syncChaptersWithSource
+import eu.kanade.tachiyomi.util.*
 import rx.Observable
 import rx.Subscription
 import rx.schedulers.Schedulers
@@ -57,6 +56,8 @@ class LibraryUpdateService : Service() {
      */
     val preferences: PreferencesHelper by injectLazy()
 
+    val downloadManager: DownloadManager by injectLazy()
+
     /**
      * Wake lock that will be held until the service is destroyed.
      */
@@ -73,7 +74,9 @@ class LibraryUpdateService : Service() {
     private val notificationId: Int
         get() = Constants.NOTIFICATION_LIBRARY_ID
 
-    private var notificationBitmap: Bitmap? = null
+    private val notificationBitmap by lazy {
+        BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+    }
 
     companion object {
 
@@ -141,8 +144,6 @@ class LibraryUpdateService : Service() {
      */
     override fun onDestroy() {
         subscription?.unsubscribe()
-        notificationBitmap?.recycle()
-        notificationBitmap = null
         destroyWakeLock()
         super.onDestroy()
     }
@@ -171,10 +172,6 @@ class LibraryUpdateService : Service() {
         // Update favorite manga. Destroy service when completed or in case of an error.
         subscription = Observable
                 .defer {
-                    if (notificationBitmap == null) {
-                        notificationBitmap = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
-                    }
-
                     val mangaList = getMangaToUpdate(intent)
 
                     // Update either chapter list or manga details.
@@ -251,24 +248,46 @@ class LibraryUpdateService : Service() {
                             // If there's any error, return empty update and continue.
                             .onErrorReturn {
                                 failedUpdates.add(manga)
-                                Pair(0, 0)
+                                Pair(emptyList<Chapter>(), emptyList<Chapter>())
                             }
                             // Filter out mangas without new chapters (or failed).
-                            .filter { pair -> pair.first > 0 }
+                            .filter { pair -> pair.first.size > 0 }
+                            .doOnNext {
+                                if (preferences.downloadNew()) {
+                                    downloadChapters(manga, it.first)
+                                }
+                            }
                             // Convert to the manga that contains new chapters.
                             .map { manga }
                 }
                 // Add manga with new chapters to the list.
-                .doOnNext { newUpdates.add(it) }
+                .doOnNext { manga ->
+                    // Set last updated time
+                    manga.last_update = Date().time
+                    db.updateLastUpdated(manga).executeAsBlocking()
+                    // Add to the list
+                    newUpdates.add(manga)
+                }
                 // Notify result of the overall update.
                 .doOnCompleted {
                     if (newUpdates.isEmpty()) {
                         cancelNotification()
                     } else {
+                        if (preferences.downloadNew()) {
+                            DownloadService.start(this)
+                        }
                         showResultNotification(newUpdates, failedUpdates)
                     }
-                    LibraryUpdateJob.setupTask()
                 }
+    }
+
+    fun downloadChapters(manga: Manga, chapters: List<Chapter>) {
+        // we need to get the chapters from the db so we have chapter ids
+        val mangaChapters = db.getChapters(manga).executeAsBlocking()
+        val dbChapters = chapters.map {
+            mangaChapters.find { mangaChapter -> mangaChapter.url == it.url }!!
+        }
+        downloadManager.downloadChapters(manga, dbChapters)
     }
 
     /**
@@ -277,7 +296,7 @@ class LibraryUpdateService : Service() {
      * @param manga the manga to update.
      * @return a pair of the inserted and removed chapters.
      */
-    fun updateManga(manga: Manga): Observable<Pair<Int, Int>> {
+    fun updateManga(manga: Manga): Observable<Pair<List<Chapter>, List<Chapter>>> {
         val source = sourceManager.get(manga.source) as? OnlineSource ?: return Observable.empty()
         return source.fetchChapterList(manga)
                 .map { syncChaptersWithSource(db, it, manga, source) }
@@ -328,7 +347,7 @@ class LibraryUpdateService : Service() {
      * @return the body of the notification to display.
      */
     private fun getUpdatedMangasBody(updates: List<Manga>, failedUpdates: List<Manga>): String {
-        return with(StringBuilder()) {
+        return buildString {
             if (updates.isEmpty()) {
                 append(getString(R.string.notification_no_new_chapters))
                 append("\n")
@@ -336,7 +355,7 @@ class LibraryUpdateService : Service() {
                 append(getString(R.string.notification_new_chapters))
                 for (manga in updates) {
                     append("\n")
-                    append(manga.title)
+                    append(manga.title.chop(45))
                 }
             }
             if (!failedUpdates.isEmpty()) {
@@ -344,10 +363,9 @@ class LibraryUpdateService : Service() {
                 append(getString(R.string.notification_manga_update_failed))
                 for (manga in failedUpdates) {
                     append("\n")
-                    append(manga.title)
+                    append(manga.title.chop(45))
                 }
             }
-            toString()
         }
     }
 
@@ -376,7 +394,7 @@ class LibraryUpdateService : Service() {
      * @param body the body of the notification.
      */
     private fun showNotification(title: String, body: String) {
-        notificationManager.notify(notificationId, notification() {
+        notificationManager.notify(notificationId, notification {
             setSmallIcon(R.drawable.ic_refresh_white_24dp_img)
             setLargeIcon(notificationBitmap)
             setContentTitle(title)
@@ -392,7 +410,7 @@ class LibraryUpdateService : Service() {
      * @param total the total progress.
      */
     private fun showProgressNotification(manga: Manga, current: Int, total: Int, cancelIntent: PendingIntent) {
-        notificationManager.notify(notificationId, notification() {
+        notificationManager.notify(notificationId, notification {
             setSmallIcon(R.drawable.ic_refresh_white_24dp_img)
             setLargeIcon(notificationBitmap)
             setContentTitle(manga.title)
@@ -413,7 +431,7 @@ class LibraryUpdateService : Service() {
         val title = getString(R.string.notification_update_completed)
         val body = getUpdatedMangasBody(updates, failed)
 
-        notificationManager.notify(notificationId, notification() {
+        notificationManager.notify(notificationId, notification {
             setSmallIcon(R.drawable.ic_refresh_white_24dp_img)
             setLargeIcon(notificationBitmap)
             setContentTitle(title)

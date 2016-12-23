@@ -1,15 +1,19 @@
 package eu.kanade.tachiyomi.data.source.model
 
+import android.net.Uri
 import eu.kanade.tachiyomi.data.network.ProgressListener
 import eu.kanade.tachiyomi.ui.reader.ReaderChapter
 import rx.subjects.Subject
 
 class Page(
-        val pageNumber: Int,
-        val url: String,
+        val index: Int,
+        val url: String = "",
         var imageUrl: String? = null,
-        @Transient var imagePath: String? = null
+        @Transient var uri: Uri? = null
 ) : ProgressListener {
+
+    val number: Int
+        get() = index + 1
 
     @Transient lateinit var chapter: ReaderChapter
 

@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.ui.reader.viewer.webtoon
 import android.os.Bundle
 import android.support.v7.widget.RecyclerView
 import android.view.*
-import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import eu.kanade.tachiyomi.data.source.model.Page
@@ -53,9 +52,9 @@ class WebtoonReader : BaseReader() {
         private set
 
     /**
-     * Gesture detector for touch events.
+     * Gesture detector for image touch events.
      */
-    val gestureDetector by lazy { createGestureDetector() }
+    val imageGestureDetector by lazy { GestureDetector(context, ImageGestureListener()) }
 
     /**
      * Subscriptions used while the view exists.
@@ -114,43 +113,39 @@ class WebtoonReader : BaseReader() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        val savedPosition = pages.getOrNull(layoutManager.findFirstVisibleItemPosition())?.pageNumber ?: 0
+        val savedPosition = pages.getOrNull(layoutManager.findFirstVisibleItemPosition())?.index ?: 0
         outState.putInt(SAVED_POSITION, savedPosition)
         super.onSaveInstanceState(outState)
     }
 
     /**
-     * Creates the gesture detector for the reader.
-     *
-     * @return a gesture detector.
+     * Gesture detector for Subsampling Scale Image View.
      */
-    protected fun createGestureDetector(): GestureDetector {
-        return GestureDetector(context, object : SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (isAdded) {
-                    val positionX = e.x
+    inner class ImageGestureListener : GestureDetector.SimpleOnGestureListener() {
 
-                    if (positionX < recycler.width * LEFT_REGION) {
-                        if (tappingEnabled) moveToPrevious()
-                    } else if (positionX > recycler.width * RIGHT_REGION) {
-                        if (tappingEnabled) moveToNext()
-                    } else {
-                        readerActivity.toggleMenu()
-                    }
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            if (isAdded) {
+                val positionX = e.x
+
+                if (positionX < recycler.width * LEFT_REGION) {
+                    if (tappingEnabled) moveLeft()
+                } else if (positionX > recycler.width * RIGHT_REGION) {
+                    if (tappingEnabled) moveRight()
+                } else {
+                    readerActivity.toggleMenu()
                 }
-                return true
             }
-        })
+            return true
+        }
     }
 
     /**
      * Called when a new chapter is set in [BaseReader].
-     *
      * @param chapter the chapter set.
      * @param currentPage the initial page to display.
      */
     override fun onChapterSet(chapter: ReaderChapter, currentPage: Page) {
-        this.currentPage = currentPage.pageNumber
+        this.currentPage = currentPage.index
 
         // Make sure the view is already initialized.
         if (view != null) {
@@ -160,7 +155,6 @@ class WebtoonReader : BaseReader() {
 
     /**
      * Called when a chapter is appended in [BaseReader].
-     *
      * @param chapter the chapter appended.
      */
     override fun onChapterAppended(chapter: ReaderChapter) {
@@ -184,7 +178,6 @@ class WebtoonReader : BaseReader() {
 
     /**
      * Sets the active page.
-     *
      * @param pageNumber the index of the page from [pages].
      */
     override fun setActivePage(pageNumber: Int) {
@@ -194,14 +187,14 @@ class WebtoonReader : BaseReader() {
     /**
      * Moves to the next page or requests the next chapter if it's the last one.
      */
-    override fun moveToNext() {
+    override fun moveRight() {
         recycler.smoothScrollBy(0, scrollDistance)
     }
 
     /**
      * Moves to the previous page or requests the previous chapter if it's the first one.
      */
-    override fun moveToPrevious() {
+    override fun moveLeft() {
         recycler.smoothScrollBy(0, -scrollDistance)
     }
 

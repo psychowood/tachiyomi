@@ -67,9 +67,9 @@
     </string-array>
 
     <string-array name="image_decoders">
+        <item>Image</item>
         <item>Rapid</item>
         <item>Skia</item>
-        <item>Image</item>
     </string-array>
 
     <string-array name="image_decoders_values">
@@ -174,6 +174,34 @@
         <item>1</item>
         <item>2</item>
         <item>3</item>
+    </string-array>
+
+    <string-array name="reader_image_options">
+        <item>@string/set_as_cover</item>
+        <item>@string/action_share</item>
+        <item>@string/action_save</item>
+    </string-array>
+
+    <string-array name="reader_image_options_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="languages">
+        <item>@string/system_default</item>
+        <item>@string/english</item>
+        <item>@string/spanish</item>
+        <item>@string/italian</item>
+        <item>@string/portuguese</item>
+    </string-array>
+
+    <string-array name="languages_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
     </string-array>
 
 </resources>

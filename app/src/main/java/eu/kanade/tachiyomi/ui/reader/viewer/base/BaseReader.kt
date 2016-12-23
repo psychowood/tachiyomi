@@ -16,9 +16,9 @@ abstract class BaseReader : BaseFragment() {
 
     companion object {
         /**
-         * Rapid decoder.
+         * Image decoder.
          */
-        const val RAPID_DECODER = 0
+        const val IMAGE_DECODER = 0
 
         /**
          * Skia decoder.
@@ -26,9 +26,9 @@ abstract class BaseReader : BaseFragment() {
         const val SKIA_DECODER = 1
 
         /**
-         * Image decoder.
+         * Rapid decoder.
          */
-        const val IMAGE_DECODER = 2
+        const val RAPID_DECODER = 2
     }
 
     /**
@@ -95,7 +95,7 @@ abstract class BaseReader : BaseFragment() {
 
         // Active chapter has changed.
         if (oldChapter.id != newChapter.id) {
-            readerActivity.onEnterChapter(newPage.chapter, newPage.pageNumber)
+            readerActivity.onEnterChapter(newPage.chapter, newPage.index)
         }
         // Request next chapter only when the conditions are met.
         if (pages.size - position < 5 && chapters.last().id == newChapter.id
@@ -125,7 +125,7 @@ abstract class BaseReader : BaseFragment() {
      */
     fun getPageIndex(search: Page): Int {
         for ((index, page) in pages.withIndex()) {
-            if (page.pageNumber == search.pageNumber && page.chapter.id == search.chapter.id) {
+            if (page.index == search.index && page.chapter.id == search.chapter.id) {
                 return index
             }
         }
@@ -189,14 +189,38 @@ abstract class BaseReader : BaseFragment() {
     abstract fun onChapterAppended(chapter: ReaderChapter)
 
     /**
-     * Moves pages forward. Implementations decide how to move (by a page, by some distance...).
+     * Moves pages to right. Implementations decide how to move (by a page, by some distance...).
      */
-    abstract fun moveToNext()
+    abstract fun moveRight()
 
     /**
-     * Moves pages backward. Implementations decide how to move (by a page, by some distance...).
+     * Moves pages to left. Implementations decide how to move (by a page, by some distance...).
      */
-    abstract fun moveToPrevious()
+    abstract fun moveLeft()
+
+    /**
+     * Moves pages down. Implementations decide how to move (by a page, by some distance...).
+     */
+    open fun moveDown() {
+        moveRight()
+    }
+
+    /**
+     * Moves pages up. Implementations decide how to move (by a page, by some distance...).
+     */
+    open fun moveUp() {
+        moveLeft()
+    }
+
+    /**
+     * Method the implementations can call to show a menu with options for the given page.
+     */
+    fun onLongClick(page: Page?): Boolean {
+        if (isAdded && page != null) {
+            readerActivity.onLongClick(page)
+        }
+        return true
+    }
 
     /**
      * Sets the active decoder class.
@@ -205,17 +229,17 @@ abstract class BaseReader : BaseFragment() {
      */
     fun setDecoderClass(value: Int) {
         when (value) {
-            RAPID_DECODER -> {
-                bitmapDecoderClass = RapidImageDecoder::class.java
-                regionDecoderClass = RapidImageRegionDecoder::class.java
+            IMAGE_DECODER -> {
+                bitmapDecoderClass = IImageDecoder::class.java
+                regionDecoderClass = IImageRegionDecoder::class.java
             }
             SKIA_DECODER -> {
                 bitmapDecoderClass = SkiaImageDecoder::class.java
                 regionDecoderClass = SkiaImageRegionDecoder::class.java
             }
-            IMAGE_DECODER -> {
-                bitmapDecoderClass = IImageDecoder::class.java
-                regionDecoderClass = IImageRegionDecoder::class.java
+            RAPID_DECODER -> {
+                bitmapDecoderClass = RapidImageDecoder::class.java
+                regionDecoderClass = RapidImageRegionDecoder::class.java
             }
         }
     }

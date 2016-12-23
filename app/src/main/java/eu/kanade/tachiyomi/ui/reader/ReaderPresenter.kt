@@ -1,22 +1,29 @@
 package eu.kanade.tachiyomi.ui.reader
 
 import android.os.Bundle
+import android.os.Environment
+import android.webkit.MimeTypeMap
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.cache.ChapterCache
+import eu.kanade.tachiyomi.data.cache.CoverCache
 import eu.kanade.tachiyomi.data.database.DatabaseHelper
 import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.History
 import eu.kanade.tachiyomi.data.database.models.Manga
-import eu.kanade.tachiyomi.data.database.models.MangaSync
+import eu.kanade.tachiyomi.data.database.models.Track
 import eu.kanade.tachiyomi.data.download.DownloadManager
-import eu.kanade.tachiyomi.data.mangasync.MangaSyncManager
-import eu.kanade.tachiyomi.data.mangasync.UpdateMangaSyncService
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.data.source.SourceManager
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.OnlineSource
+import eu.kanade.tachiyomi.data.track.TrackManager
+import eu.kanade.tachiyomi.data.track.TrackUpdateService
 import eu.kanade.tachiyomi.ui.base.presenter.BasePresenter
+import eu.kanade.tachiyomi.ui.reader.notification.ImageNotifier
+import eu.kanade.tachiyomi.util.DiskUtil
 import eu.kanade.tachiyomi.util.RetryWithDelay
 import eu.kanade.tachiyomi.util.SharedData
+import eu.kanade.tachiyomi.util.toast
 import rx.Observable
 import rx.Subscription
 import rx.android.schedulers.AndroidSchedulers
@@ -24,13 +31,13 @@ import rx.schedulers.Schedulers
 import timber.log.Timber
 import uy.kohesive.injekt.injectLazy
 import java.io.File
+import java.net.URLConnection
 import java.util.*
 
 /**
  * Presenter of [ReaderActivity].
  */
 class ReaderPresenter : BasePresenter<ReaderActivity>() {
-
     /**
      * Preferences.
      */
@@ -47,9 +54,9 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
     val downloadManager: DownloadManager by injectLazy()
 
     /**
-     * Sync manager.
+     * Tracking manager.
      */
-    val syncManager: MangaSyncManager by injectLazy()
+    val trackManager: TrackManager by injectLazy()
 
     /**
      * Source manager.
@@ -60,6 +67,11 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
      * Chapter cache.
      */
     val chapterCache: ChapterCache by injectLazy()
+
+    /**
+     * Cover cache.
+     */
+    val coverCache: CoverCache by injectLazy()
 
     /**
      * Manga being read.
@@ -112,7 +124,7 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
     /**
      * List of manga services linked to the active manga, or null if auto syncing is not enabled.
      */
-    private var mangaSyncList: List<MangaSync>? = null
+    private var trackList: List<Track>? = null
 
     /**
      * Chapter loader whose job is to obtain the chapter list and initialize every page.
@@ -153,9 +165,9 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
                 .subscribeLatestCache({ view, manga -> view.onMangaOpen(manga) })
 
         // Retrieve the sync list if auto syncing is enabled.
-        if (prefs.autoUpdateMangaSync()) {
-            add(db.getMangasSync(manga).asRxSingle()
-                    .subscribe({ mangaSyncList = it }))
+        if (prefs.autoUpdateTrack()) {
+            add(db.getTracks(manga).asRxSingle()
+                    .subscribe({ trackList = it }))
         }
 
         restartableLatestCache(LOAD_ACTIVE_CHAPTER,
@@ -332,9 +344,9 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
     fun retryPage(page: Page?) {
         if (page != null && source is OnlineSource) {
             page.status = Page.QUEUE
-            val path = page.imagePath
-            if (!path.isNullOrEmpty() && !page.chapter.isDownloaded) {
-                chapterCache.removeFileFromCache(File(path).name)
+            val uri = page.uri
+            if (uri != null && !page.chapter.isDownloaded) {
+                chapterCache.removeFileFromCache(uri.encodedPath.substringAfterLast('/'))
             }
             loader.retryPage(page)
         }
@@ -351,27 +363,27 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
         val pages = chapter.pages ?: return
 
         Observable.fromCallable {
-            // Chapters with 1 page don't trigger page changes, so mark them as read.
-            if (pages.size == 1) {
-                chapter.read = true
-            }
-
             // Cache current page list progress for online chapters to allow a faster reopen
             if (!chapter.isDownloaded) {
                 source.let { if (it is OnlineSource) it.savePageList(chapter, pages) }
             }
 
-            if (chapter.read) {
-                val removeAfterReadSlots = prefs.removeAfterReadSlots()
-                when (removeAfterReadSlots) {
-                // Setting disabled
-                    -1 -> { /**Empty function**/ }
-                // Remove current read chapter
-                    0 -> deleteChapter(chapter, manga)
-                // Remove previous chapter specified by user in settings.
-                    else -> getAdjacentChaptersStrategy(chapter, removeAfterReadSlots)
-                            .first?.let { deleteChapter(it, manga) }
+            try {
+                if (chapter.read) {
+                    val removeAfterReadSlots = prefs.removeAfterReadSlots()
+                    when (removeAfterReadSlots) {
+                        // Setting disabled
+                        -1 -> { /* Empty function */ }
+                        // Remove current read chapter
+                        0 -> deleteChapter(chapter, manga)
+                        // Remove previous chapter specified by user in settings.
+                        else -> getAdjacentChaptersStrategy(chapter, removeAfterReadSlots)
+                                .first?.let { deleteChapter(it, manga) }
+                    }
                 }
+            } catch (error: Exception) {
+                // TODO find out why it crashes
+                Timber.e(error)
             }
 
             db.updateChapterProgress(chapter).executeAsBlocking()
@@ -384,8 +396,8 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
                 Timber.e(error)
             }
         }
-        .subscribeOn(Schedulers.io())
-        .subscribe()
+                .subscribeOn(Schedulers.io())
+                .subscribe()
     }
 
     /**
@@ -395,7 +407,7 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
      */
     fun onPageChanged(page: Page) {
         val chapter = page.chapter
-        chapter.last_page_read = page.pageNumber
+        chapter.last_page_read = page.index
         if (chapter.pages!!.last() === page) {
             chapter.read = true
         }
@@ -419,9 +431,9 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
     /**
      * Returns the chapter to be marked as last read in sync services or 0 if no update required.
      */
-    fun getMangaSyncChapterToUpdate(): Int {
-        val mangaSyncList = mangaSyncList
-        if (chapter.pages == null || mangaSyncList == null || mangaSyncList.isEmpty())
+    fun getTrackChapterToUpdate(): Int {
+        val trackList = trackList
+        if (chapter.pages == null || trackList == null || trackList.isEmpty())
             return 0
 
         val prevChapter = prevChapter
@@ -434,24 +446,24 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
         else
             0
 
-        mangaSyncList.forEach { sync ->
+        trackList.forEach { sync ->
             if (lastChapterRead > sync.last_chapter_read) {
                 sync.last_chapter_read = lastChapterRead
                 sync.update = true
             }
         }
 
-        return if (mangaSyncList.any { it.update }) lastChapterRead else 0
+        return if (trackList.any { it.update }) lastChapterRead else 0
     }
 
     /**
      * Starts the service that updates the last chapter read in sync services
      */
-    fun updateMangaSyncLastChapterRead() {
-        mangaSyncList?.forEach { sync ->
-            val service = syncManager.getService(sync.sync_id)
+    fun updateTrackLastChapterRead() {
+        trackList?.forEach { sync ->
+            val service = trackManager.getService(sync.sync_id)
             if (service != null && service.isLogged && sync.update) {
-                UpdateMangaSyncService.start(context, sync)
+                TrackUpdateService.start(context, sync)
             }
         }
     }
@@ -508,4 +520,75 @@ class ReaderPresenter : BasePresenter<ReaderActivity>() {
         db.insertManga(manga).executeAsBlocking()
     }
 
+    /**
+     * Update cover with page file.
+     */
+    internal fun setImageAsCover(page: Page) {
+        try {
+            val thumbUrl = manga.thumbnail_url ?: throw Exception("Image url not found")
+            if (manga.favorite) {
+                val input = context.contentResolver.openInputStream(page.uri)
+                coverCache.copyToCache(thumbUrl, input)
+                context.toast(R.string.cover_updated)
+            } else {
+                context.toast(R.string.notification_first_add_to_library)
+            }
+        } catch (error: Exception) {
+            context.toast(R.string.notification_cover_update_failed)
+            Timber.e(error)
+        }
+    }
+
+    /**
+     * Save page to local storage.
+     */
+    internal fun savePage(page: Page) {
+        if (page.status != Page.READY)
+            return
+
+        // Used to show image notification.
+        val imageNotifier = ImageNotifier(context)
+
+        // Remove the notification if it already exists (user feedback).
+        imageNotifier.onClear()
+
+        // Pictures directory.
+        val pictureDirectory = Environment.getExternalStorageDirectory().absolutePath +
+                File.separator + Environment.DIRECTORY_PICTURES +
+                File.separator + context.getString(R.string.app_name)
+
+        // Copy file in background.
+        Observable
+                .fromCallable {
+                    // Folder where the image will be saved.
+                    val destDir = File(pictureDirectory)
+                    destDir.mkdirs()
+
+                    // Find out file mime type.
+                    val mime = context.contentResolver.getType(page.uri)
+                    ?: context.contentResolver.openInputStream(page.uri).buffered().use {
+                        URLConnection.guessContentTypeFromStream(it)
+                    }
+
+                    // Build destination file.
+                    val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
+                    val filename = DiskUtil.buildValidFilename(
+                            "${manga.title} - ${chapter.name}") + " - ${page.number}.$ext"
+                    val destFile = File(destDir, filename)
+
+                    context.contentResolver.openInputStream(page.uri).use { input ->
+                        destFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    imageNotifier.onComplete(destFile)
+                }
+                .subscribeOn(Schedulers.io())
+                .subscribe({},
+                        { error ->
+                            Timber.e(error)
+                            imageNotifier.onError(error.message)
+                        })
+    }
 }

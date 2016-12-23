@@ -23,6 +23,9 @@
     <string name="action_filter_unread">Unread</string>
     <string name="action_filter_read">Read</string>
     <string name="action_filter_empty">Remove filter</string>
+    <string name="action_sort_alpha">Alphabetically</string>
+    <string name="action_sort_last_read">Last read</string>
+    <string name="action_sort_last_updated">Last updated</string>
     <string name="action_search">Search</string>
     <string name="action_select_all">Select all</string>
     <string name="action_mark_as_read">Mark as read</string>
@@ -57,11 +60,15 @@
     <string name="action_open_in_browser">Open in browser</string>
     <string name="action_add_to_home_screen">Add to home screen</string>
     <string name="action_display_mode">Change display mode</string>
+    <string name="action_display">Display</string>
+    <string name="action_display_grid">Grid</string>
+    <string name="action_display_list">List</string>
     <string name="action_set_filter">Set filter</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_sort">Sort</string>
     <string name="action_install">Install</string>
     <string name="action_share">Share</string>
+    <string name="action_save">Save</string>
 
     <!-- Operations -->
     <string name="deleting">Deleting…</string>
@@ -73,7 +80,7 @@
     <string name="pref_category_reader">Reader</string>
     <string name="pref_category_downloads">Downloads</string>
     <string name="pref_category_sources">Sources</string>
-    <string name="pref_category_sync">Sync</string>
+    <string name="pref_category_tracking">Tracking</string>
     <string name="pref_category_advanced">Advanced</string>
     <string name="pref_category_about">About</string>
 
@@ -104,6 +111,14 @@
     <string name="light_theme">Main theme</string>
     <string name="dark_theme">Dark theme</string>
     <string name="pref_start_screen">Start screen</string>
+    <string name="pref_language">Language</string>
+
+      <!-- Languages -->
+    <string name="system_default">System Default</string>
+    <string name="english">English</string>
+    <string name="spanish">Spanish</string>
+    <string name="italian">Italian</string>
+    <string name="portuguese">Portuguese</string>
 
       <!-- Reader section -->
     <string name="pref_fullscreen">Fullscreen</string>
@@ -162,6 +177,7 @@
     <string name="third_to_last">Third to last chapter</string>
     <string name="fourth_to_last">Fourth to last chapter</string>
     <string name="fifth_to_last">Fifth to last chapter</string>
+    <string name="pref_download_new">Download new chapters</string>
 
       <!-- Sync section -->
     <string name="services">Services</string>
@@ -210,6 +226,9 @@
     <string name="select_source">Select a source</string>
     <string name="no_valid_sources">Please enable at least one valid source</string>
 
+    <!-- Manga activity -->
+    <string name="manga_not_in_db">This manga was removed from the database!</string>
+
     <!-- Manga info fragment -->
     <string name="manga_detail_tab">Info</string>
     <string name="description">Description</string>
@@ -224,7 +243,6 @@
     <string name="manga_info_status_label">Status</string>
     <string name="manga_info_source_label">Source</string>
     <string name="manga_info_genres_label">Genres</string>
-    <string name="share_subject">Share…</string>
     <string name="share_text">Check out %1$s! at %2$s</string>
     <string name="circular_icon">Circular icon</string>
     <string name="rounded_icon">Rounded icon</string>
@@ -258,23 +276,34 @@
     <string name="confirm_delete_chapters">Are you sure you want to delete selected chapters?</string>
 
     <!-- MyAnimeList fragment -->
+    <string name="manga_tracking_tab">Tracking</string>
     <string name="reading">Reading</string>
     <string name="completed">Completed</string>
     <string name="dropped">Dropped</string>
     <string name="on_hold">On hold</string>
     <string name="plan_to_read">Plan to read</string>
     <string name="score">Score</string>
-    <string name="title_hint">Title…</string>
+    <string name="title">Title</string>
     <string name="status">Status</string>
     <string name="chapters">Chapters</string>
+
+    <!-- Category activity -->
+    <string name="error_category_exists">A category with this name already exists!</string>
 
     <!-- Dialog remove recently view -->
     <string name="dialog_remove_recently_description">This will remove the read date of this chapter. Are you sure?</string>
     <string name="dialog_remove_recently_reset">Reset all chapters for this manga</string>
 
+    <!-- Image notifier -->
+    <string name="picture_saved">Picture saved</string>
+    <string name="saving_picture">Saving picture</string>
+    <string name="options">Options</string>
 
     <!-- Reader activity -->
     <string name="custom_filter">Custom filter</string>
+    <string name="set_as_cover">Set as cover</string>
+    <string name="cover_updated">Cover updated</string>
+    <string name="page_downloaded">Page copied to %1$s</string>
     <string name="downloading">Downloading…</string>
     <string name="download_progress">Downloaded %1$d%%</string>
     <string name="chapter_progress">Page: %1$d</string>
@@ -283,6 +312,7 @@
     <string name="no_previous_chapter">Previous chapter not found</string>
     <string name="decode_image_error">Image could not be loaded.\nTry changing the image decoder or with one of the options below</string>
     <string name="confirm_update_manga_sync">Update last chapter read in enabled services to %1$d?</string>
+    <string name="confirm_set_image_as_cover">Do you want to set this image as the cover?</string>
     <string name="viewer_for_this_series">Viewer for this series</string>
 
     <!-- Backup fragment -->
@@ -305,6 +335,7 @@
     <string name="notification_no_new_chapters">No new chapters found</string>
     <string name="notification_new_chapters">New chapters found for:</string>
     <string name="notification_manga_update_failed">Failed to update manga:</string>
+    <string name="notification_cover_update_failed">Failed to update cover</string>
     <string name="notification_first_add_to_library">Please add the manga to your library before doing this</string>
     <string name="notification_not_connected_to_ac_title">Sync canceled</string>
     <string name="notification_not_connected_to_ac_body">Not connected to AC power</string>
@@ -342,10 +373,12 @@
     <string name="information_empty_library">Empty library</string>
 
     <!-- Download Notification -->
+    <string name="download_notifier_downloader_title">Downloader</string>
     <string name="download_notifier_title_error">Error</string>
     <string name="download_notifier_unkown_error">An unexpected error occurred while downloading chapter</string>
     <string name="download_notifier_page_error">A page is missing in directory</string>
     <string name="download_notifier_page_ready_error">A page is not loaded</string>
     <string name="download_notifier_text_only_wifi">No wifi connection available</string>
+    <string name="download_notifier_no_network">No network connection available</string>
 
 </resources>

@@ -63,7 +63,7 @@ class SettingsActivity : BaseActivity(),
             "general_screen" -> SettingsGeneralFragment.newInstance(key)
             "downloads_screen" -> SettingsDownloadsFragment.newInstance(key)
             "sources_screen" -> SettingsSourcesFragment.newInstance(key)
-            "sync_screen" -> SettingsSyncFragment.newInstance(key)
+            "tracking_screen" -> SettingsTrackingFragment.newInstance(key)
             "advanced_screen" -> SettingsAdvancedFragment.newInstance(key)
             "about_screen" -> SettingsAboutFragment.newInstance(key)
             else -> SettingsFragment.newInstance(key)
@@ -78,6 +78,7 @@ class SettingsActivity : BaseActivity(),
     companion object {
         const val FLAG_THEME_CHANGED = 0x1
         const val FLAG_DATABASE_CLEARED = 0x2
+        const val FLAG_LANG_CHANGED = 0x4
     }
 
 }
