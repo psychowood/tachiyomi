@@ -1,12 +1,9 @@
 package eu.kanade.tachiyomi.data.source.online.english
 
-import android.content.Context
 import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.network.GET
 import eu.kanade.tachiyomi.data.network.POST
-import eu.kanade.tachiyomi.data.source.EN
-import eu.kanade.tachiyomi.data.source.Language
 import eu.kanade.tachiyomi.data.source.model.MangasPage
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.ParsedOnlineSource
@@ -25,7 +22,7 @@ class Kissmanga(override val id: Int) : ParsedOnlineSource() {
 
     override val baseUrl = "http://kissmanga.com"
 
-    override val lang: Language get() = EN
+    override val lang = "en"
 
     override val supportsLatest = true
 
@@ -62,10 +59,10 @@ class Kissmanga(override val id: Int) : ParsedOnlineSource() {
         val form = FormBody.Builder().apply {
             add("authorArtist", "")
             add("mangaName", query)
-            add("status", "")
 
             this@Kissmanga.filters.forEach { filter ->
-                add("genres", if (filter in filters) "1" else "0")
+                if (filter.equals(completedFilter)) add("status", if (filter in filters) filter.id else "")
+                else add("genres", if (filter in filters) "1" else "0")
             }
         }
 
@@ -131,9 +128,11 @@ class Kissmanga(override val id: Int) : ParsedOnlineSource() {
 
     override fun imageUrlParse(document: Document) = ""
 
+    private val completedFilter = Filter("Completed", "Completed")
     // $("select[name=\"genres\"]").map((i,el) => `Filter("${i}", "${$(el).next().text().trim()}")`).get().join(',\n')
     // on http://kissmanga.com/AdvanceSearch
     override fun getFilterList(): List<Filter> = listOf(
+            completedFilter,
             Filter("0", "Action"),
             Filter("1", "Adult"),
             Filter("2", "Adventure"),

@@ -7,8 +7,6 @@ import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.network.GET
 import eu.kanade.tachiyomi.data.network.POST
 import eu.kanade.tachiyomi.data.network.asObservable
-import eu.kanade.tachiyomi.data.source.EN
-import eu.kanade.tachiyomi.data.source.Language
 import eu.kanade.tachiyomi.data.source.model.MangasPage
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.LoginSource
@@ -33,7 +31,7 @@ class Batoto(override val id: Int) : ParsedOnlineSource(), LoginSource {
 
     override val baseUrl = "http://bato.to"
 
-    override val lang: Language get() = EN
+    override val lang = "en"
 
     override val supportsLatest = true
 
@@ -109,12 +107,17 @@ class Batoto(override val id: Int) : ParsedOnlineSource(), LoginSource {
 
     override fun latestUpdatesNextPageSelector() = "#show_more_row"
 
-    override fun searchMangaInitialUrl(query: String, filters: List<Filter>) = "$baseUrl/search_ajax?name=${Uri.encode(query)}&order_cond=views&order=desc&p=1&genre_cond=and&genres=${getFilterParams(filters)}"
+    override fun searchMangaInitialUrl(query: String, filters: List<Filter>) = "$baseUrl/search_ajax?name=${Uri.encode(query)}&order_cond=views&order=desc&p=1${getFilterParams(filters)}"
 
-    private fun getFilterParams(filters: List<Filter>): String = filters
-            .map {
-                ";i" + it.id
-            }.joinToString()
+    private fun getFilterParams(filters: List<Filter>): String {
+        var genres = ""
+        var completed = ""
+        for (filter in filters) {
+            if (filter.equals(completedFilter)) completed = "&completed=c"
+            else genres += ";i" + filter.id
+        }
+        return if (genres.isEmpty()) completed else "&genres=$genres&genre_cond=and$completed"
+    }
 
     override fun searchMangaRequest(page: MangasPage, query: String, filters: List<Filter>): Request {
         if (page.page == 1) {
@@ -133,7 +136,7 @@ class Batoto(override val id: Int) : ParsedOnlineSource(), LoginSource {
         }
 
         page.nextPageUrl = document.select(searchMangaNextPageSelector()).first()?.let {
-            "$baseUrl/search_ajax?name=${Uri.encode(query)}&p=${page.page + 1}&order_cond=views&order=desc&genre_cond=and&genres=" + getFilterParams(filters)
+            "$baseUrl/search_ajax?name=${Uri.encode(query)}&order_cond=views&order=desc&p=${page.page + 1}${getFilterParams(filters)}"
         }
     }
 
@@ -301,11 +304,13 @@ class Batoto(override val id: Int) : ParsedOnlineSource(), LoginSource {
         }
     }
 
+    private val completedFilter = Filter("completed", "Completed")
     // [...document.querySelectorAll("#advanced_options div.genre_buttons")].map((el,i) => {
     //     const onClick=el.getAttribute('onclick');const id=onClick.substr(14,onClick.length-16);return `Filter("${id}", "${el.textContent.trim()}")`
     // }).join(',\n')
     // on https://bato.to/search
     override fun getFilterList(): List<Filter> = listOf(
+            completedFilter,
             Filter("40", "4-Koma"),
             Filter("1", "Action"),
             Filter("2", "Adventure"),

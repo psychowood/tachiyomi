@@ -2,8 +2,6 @@ package eu.kanade.tachiyomi.data.source.online.english
 
 import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.Manga
-import eu.kanade.tachiyomi.data.source.EN
-import eu.kanade.tachiyomi.data.source.Language
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.ParsedOnlineSource
 import eu.kanade.tachiyomi.util.asJsoup
@@ -20,7 +18,7 @@ class Mangafox(override val id: Int) : ParsedOnlineSource() {
 
     override val baseUrl = "http://mangafox.me"
 
-    override val lang: Language get() = EN
+    override val lang = "en"
 
     override val supportsLatest = true
 
@@ -50,10 +48,10 @@ class Mangafox(override val id: Int) : ParsedOnlineSource() {
     override fun searchMangaInitialUrl(query: String, filters: List<Filter>) =
             "$baseUrl/search.php?name_method=cw&advopts=1&order=za&sort=views&name=$query&page=1&${filters.map { it.id + "=1" }.joinToString("&")}"
 
-    override fun searchMangaSelector() = "table#listing > tbody > tr:gt(0)"
+    override fun searchMangaSelector() = "div#mangalist > ul.list > li"
 
     override fun searchMangaFromElement(element: Element, manga: Manga) {
-        element.select("a.series_preview").first().let {
+        element.select("a.title").first().let {
             manga.setUrlWithoutDomain(it.attr("href"))
             manga.title = it.text()
         }
@@ -132,6 +130,7 @@ class Mangafox(override val id: Int) : ParsedOnlineSource() {
     // $('select.genres').map((i,el)=>`Filter("${$(el).attr('name')}", "${$(el).next().text().trim()}")`).get().join(',\n')
     // on http://kissmanga.com/AdvanceSearch
     override fun getFilterList(): List<Filter> = listOf(
+            Filter("is_completed", "Completed"),
             Filter("genres[Action]", "Action"),
             Filter("genres[Adult]", "Adult"),
             Filter("genres[Adventure]", "Adventure"),

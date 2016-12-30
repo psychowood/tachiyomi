@@ -1,11 +1,8 @@
 package eu.kanade.tachiyomi.data.source.online.english
 
-import android.content.Context
 import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.network.POST
-import eu.kanade.tachiyomi.data.source.EN
-import eu.kanade.tachiyomi.data.source.Language
 import eu.kanade.tachiyomi.data.source.model.MangasPage
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.OnlineSource
@@ -23,7 +20,7 @@ class Readmangatoday(override val id: Int) : ParsedOnlineSource() {
 
     override val baseUrl = "http://www.readmanga.today"
 
-    override val lang: Language get() = EN
+    override val lang = "en"
 
     override val supportsLatest = true
 
@@ -72,10 +69,12 @@ class Readmangatoday(override val id: Int) : ParsedOnlineSource() {
         val builder = okhttp3.FormBody.Builder()
         builder.add("manga-name", query)
         builder.add("type", "all")
-        builder.add("status", "both")
+        var status = "both"
         for (filter in filters) {
-            builder.add("include[]", filter.id)
+            if (filter.equals(completedFilter)) status = filter.id
+            else builder.add("include[]", filter.id)
         }
+        builder.add("status", status)
 
         return POST(page.url, headers, builder.build())
     }
@@ -154,9 +153,11 @@ class Readmangatoday(override val id: Int) : ParsedOnlineSource() {
 
     override fun imageUrlParse(document: Document) = document.select("img.img-responsive-2").first().attr("src")
 
+    private val completedFilter = Filter("completed", "Completed")
     // [...document.querySelectorAll("ul.manga-cat span")].map(el => `Filter("${el.getAttribute('data-id')}", "${el.nextSibling.textContent.trim()}")`).join(',\n')
     // http://www.readmanga.today/advanced-search
     override fun getFilterList(): List<Filter> = listOf(
+            completedFilter,
             Filter("2", "Action"),
             Filter("4", "Adventure"),
             Filter("5", "Comedy"),

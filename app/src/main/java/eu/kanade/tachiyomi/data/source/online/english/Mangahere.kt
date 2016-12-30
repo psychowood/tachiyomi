@@ -2,8 +2,6 @@ package eu.kanade.tachiyomi.data.source.online.english
 
 import eu.kanade.tachiyomi.data.database.models.Chapter
 import eu.kanade.tachiyomi.data.database.models.Manga
-import eu.kanade.tachiyomi.data.source.EN
-import eu.kanade.tachiyomi.data.source.Language
 import eu.kanade.tachiyomi.data.source.model.Page
 import eu.kanade.tachiyomi.data.source.online.ParsedOnlineSource
 import org.jsoup.nodes.Document
@@ -18,7 +16,7 @@ class Mangahere(override val id: Int) : ParsedOnlineSource() {
 
     override val baseUrl = "http://www.mangahere.co"
 
-    override val lang: Language get() = EN
+    override val lang = "en"
 
     override val supportsLatest = true
 
@@ -30,11 +28,15 @@ class Mangahere(override val id: Int) : ParsedOnlineSource() {
 
     override fun latestUpdatesSelector() = "div.directory_list > ul > li"
 
-    override fun popularMangaFromElement(element: Element, manga: Manga) {
-        element.select("div.title > a").first().let {
+    private fun mangaFromElement(query: String, element: Element, manga: Manga) {
+        element.select(query).first().let {
             manga.setUrlWithoutDomain(it.attr("href"))
-            manga.title = it.attr("title")
+            manga.title = if (it.hasAttr("title")) it.attr("title") else if (it.hasAttr("rel")) it.attr("rel") else it.text()
         }
+    }
+
+    override fun popularMangaFromElement(element: Element, manga: Manga) {
+        mangaFromElement("div.title > a", element, manga)
     }
 
     override fun latestUpdatesFromElement(element: Element, manga: Manga) {
@@ -50,10 +52,7 @@ class Mangahere(override val id: Int) : ParsedOnlineSource() {
     override fun searchMangaSelector() = "div.result_search > dl:has(dt)"
 
     override fun searchMangaFromElement(element: Element, manga: Manga) {
-        element.select("a.manga_info").first().let {
-            manga.setUrlWithoutDomain(it.attr("href"))
-            manga.title = it.attr("title")
-        }
+        mangaFromElement("a.manga_info", element, manga)
     }
 
     override fun searchMangaNextPageSelector() = "div.next-page > a.next"
@@ -145,6 +144,7 @@ class Mangahere(override val id: Int) : ParsedOnlineSource() {
     // [...document.querySelectorAll("select[id^='genres'")].map((el,i) => `Filter("${el.getAttribute('name')}", "${el.nextSibling.nextSibling.textContent.trim()}")`).join(',\n')
     // http://www.mangahere.co/advsearch.htm
     override fun getFilterList(): List<Filter> = listOf(
+            Filter("is_completed", "Completed"),
             Filter("genres[Action]", "Action"),
             Filter("genres[Adventure]", "Adventure"),
             Filter("genres[Comedy]", "Comedy"),
