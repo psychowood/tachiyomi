@@ -13,7 +13,7 @@ import eu.kanade.tachiyomi.data.database.models.MangaCategory
 import eu.kanade.tachiyomi.data.download.DownloadManager
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
 import eu.kanade.tachiyomi.data.preference.getOrDefault
-import eu.kanade.tachiyomi.data.source.SourceManager
+import eu.kanade.tachiyomi.source.SourceManager
 import eu.kanade.tachiyomi.ui.base.presenter.BasePresenter
 import eu.kanade.tachiyomi.util.combineLatest
 import eu.kanade.tachiyomi.util.isNullOrUnsubscribed
@@ -125,7 +125,7 @@ class LibraryPresenter : BasePresenter<LibraryFragment>() {
      */
     private fun applyFilters(map: Map<Int, List<Manga>>): Map<Int, List<Manga>> {
         // Cached list of downloaded manga directories given a source id.
-        val mangaDirectories = mutableMapOf<Int, Array<UniFile>>()
+        val mangaDirectories = mutableMapOf<Long, Array<UniFile>>()
 
         // Cached list of downloaded chapter directories for a manga.
         val chapterDirectories = mutableMapOf<Long, Boolean>()
@@ -293,9 +293,12 @@ class LibraryPresenter : BasePresenter<LibraryFragment>() {
      *
      * @param mangas the list of manga.
      */
-    fun getCommonCategories(mangas: List<Manga>): Collection<Category> = mangas.toSet()
-            .map { db.getCategoriesForManga(it).executeAsBlocking() }
-            .reduce { set1: Iterable<Category>, set2 -> set1.intersect(set2) }
+    fun getCommonCategories(mangas: List<Manga>): Collection<Category> {
+        if (mangas.isEmpty()) return emptyList()
+        return mangas.toSet()
+                .map { db.getCategoriesForManga(it).executeAsBlocking() }
+                .reduce { set1: Iterable<Category>, set2 -> set1.intersect(set2) }
+    }
 
     /**
      * Remove the selected manga from the library.

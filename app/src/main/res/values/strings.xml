@@ -38,6 +38,7 @@
     <string name="action_update">Update</string>
     <string name="action_update_library">Update library</string>
     <string name="action_edit">Edit</string>
+    <string name="action_add">Add</string>
     <string name="action_add_category">Add category</string>
     <string name="action_edit_categories">Edit categories</string>
     <string name="action_rename_category">Rename category</string>
@@ -69,6 +70,8 @@
     <string name="action_install">Install</string>
     <string name="action_share">Share</string>
     <string name="action_save">Save</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_undo">Undo</string>
 
     <!-- Operations -->
     <string name="deleting">Deleting…</string>
@@ -183,6 +186,7 @@
     <string name="cache_delete_error">An error occurred while clearing cache</string>
     <string name="pref_clear_cookies">Clear cookies</string>
     <string name="cookies_cleared">Cookies cleared</string>
+    <string name="choices_reset">Dialog choices reset</string>
     <string name="pref_clear_database">Clear database</string>
     <string name="pref_clear_database_summary">Delete manga and chapters that are not in your library</string>
     <string name="clear_database_confirmation">Are you sure? Read chapters and progress of non-library manga will be lost</string>
@@ -219,6 +223,7 @@
     <string name="source_requires_login">This source requires you to log in</string>
     <string name="select_source">Select a source</string>
     <string name="no_valid_sources">Please enable at least one valid source</string>
+    <string name="no_more_results">No more results</string>
 
     <!-- Manga activity -->
     <string name="manga_not_in_db">This manga was removed from the database!</string>
@@ -255,6 +260,7 @@
     <string name="chapter_downloading">Downloading</string>
     <string name="chapter_downloading_progress">Downloading (%1$d/%2$d)</string>
     <string name="chapter_error">Error</string>
+    <string name="chapter_paused">Paused</string>
     <string name="fetch_chapters_error">Error while fetching chapters</string>
     <string name="show_title">Show title</string>
     <string name="show_chapter_number">Show chapter number</string>
@@ -283,10 +289,14 @@
 
     <!-- Category activity -->
     <string name="error_category_exists">A category with this name already exists!</string>
+    <string name="snack_categories_deleted">Categories deleted</string>
 
-    <!-- Dialog remove recently view -->
-    <string name="dialog_remove_recently_description">This will remove the read date of this chapter. Are you sure?</string>
-    <string name="dialog_remove_recently_reset">Reset all chapters for this manga</string>
+    <!-- Dialog option with checkbox view -->
+    <string name="dialog_with_checkbox_remove_description">This will remove the read date of this chapter. Are you sure?</string>
+    <string name="dialog_with_checkbox_reset">Reset all chapters for this manga</string>
+
+    <!-- SnackBar -->
+    <string name="snack_add_to_library">Add manga to library?</string>
 
     <!-- Image notifier -->
     <string name="picture_saved">Picture saved</string>
@@ -374,5 +384,6 @@
     <string name="download_notifier_page_ready_error">A page is not loaded</string>
     <string name="download_notifier_text_only_wifi">No wifi connection available</string>
     <string name="download_notifier_no_network">No network connection available</string>
+    <string name="download_notifier_download_paused">Download paused</string>
 
 </resources>

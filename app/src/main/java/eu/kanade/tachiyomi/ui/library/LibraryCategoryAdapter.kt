@@ -4,7 +4,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
-import eu.davidea.flexibleadapter.FlexibleAdapter
+import eu.davidea.flexibleadapter4.FlexibleAdapter
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.util.inflate
@@ -91,7 +91,7 @@ class LibraryCategoryAdapter(val fragment: LibraryCategoryView) :
             }
             return LibraryGridHolder(view, this, fragment)
         } else {
-            val view = parent.inflate(R.layout.item_library_list)
+            val view = parent.inflate(R.layout.item_catalogue_list)
             return LibraryListHolder(view, this, fragment)
         }
     }
