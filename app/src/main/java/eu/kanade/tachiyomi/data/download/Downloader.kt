@@ -10,14 +10,12 @@ import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.download.model.DownloadQueue
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
+import eu.kanade.tachiyomi.data.preference.getOrDefault
 import eu.kanade.tachiyomi.source.SourceManager
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.source.online.fetchAllImageUrlsFromPageList
-import eu.kanade.tachiyomi.util.DynamicConcurrentMergeOperator
-import eu.kanade.tachiyomi.util.RetryWithDelay
-import eu.kanade.tachiyomi.util.plusAssign
-import eu.kanade.tachiyomi.util.saveTo
+import eu.kanade.tachiyomi.util.*
 import okhttp3.Response
 import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
@@ -26,7 +24,6 @@ import rx.subjects.BehaviorSubject
 import rx.subscriptions.CompositeSubscription
 import timber.log.Timber
 import uy.kohesive.injekt.injectLazy
-import java.net.URLConnection
 
 /**
  * This class is the one in charge of downloading chapters.
@@ -241,6 +238,9 @@ class Downloader(private val context: Context, private val provider: DownloadPro
         // Initialize queue size.
         notifier.initialQueueSize = queue.size
 
+        // Initial multi-thread
+        notifier.multipleDownloadThreads = preferences.downloadThreads().getOrDefault() > 1
+
         if (isRunning) {
             // Send the list of downloads to the downloader.
             downloadsRelay.call(chaptersToQueue)
@@ -407,9 +407,7 @@ class Downloader(private val context: Context, private val provider: DownloadPro
             // Else guess from the uri.
             ?: context.contentResolver.getType(file.uri)
             // Else read magic numbers.
-            ?: file.openInputStream().buffered().use {
-            URLConnection.guessContentTypeFromStream(it)
-        }
+            ?: DiskUtil.findImageMime { file.openInputStream() }
 
         return MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
     }

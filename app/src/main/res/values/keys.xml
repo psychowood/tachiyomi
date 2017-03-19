@@ -37,8 +37,10 @@
     <string name="pref_red_filter_value_key" translatable="false">pref_red_filter_value</string>
     <string name="pref_reader_theme_key" translatable="false">pref_reader_theme_key</string>
     <string name="pref_image_decoder_key" translatable="false">image_decoder</string>
+    <string name="pref_crop_borders_key" translatable="false">crop_borders</string>
     <string name="pref_read_with_volume_keys_key" translatable="false">reader_volume_keys</string>
     <string name="pref_read_with_tapping_key" translatable="false">reader_tap</string>
+
     <string name="pref_filter_downloaded_key" translatable="false">pref_filter_downloaded_key</string>
     <string name="pref_filter_unread_key" translatable="false">pref_filter_unread_key</string>
     <string name="pref_library_sorting_mode_key" translatable="false">library_sorting_mode</string>
@@ -66,6 +68,7 @@
     <string name="pref_last_catalogue_source_key" translatable="false">last_catalogue_source</string>
 
     <string name="pref_download_new_key" translatable="false">download_new</string>
+    <string name="pref_download_new_categories_key" translatable="false">download_new_categories</string>
 
     <!-- String Fonts -->
     <string name="font_roboto_medium" translatable="false">sans-serif</string>

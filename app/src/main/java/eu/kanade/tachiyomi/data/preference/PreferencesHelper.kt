@@ -34,7 +34,7 @@ class PreferencesHelper(val context: Context) {
 
     fun rotation() = rxPrefs.getInteger(keys.rotation, 1)
 
-    fun enableTransitions() = rxPrefs.getBoolean(keys.enableTransitions, true)
+    fun pageTransitions() = rxPrefs.getBoolean(keys.enableTransitions, true)
 
     fun showPageNumber() = rxPrefs.getBoolean(keys.showPageNumber, true)
 
@@ -59,6 +59,8 @@ class PreferencesHelper(val context: Context) {
     fun zoomStart() = rxPrefs.getInteger(keys.zoomStart, 1)
 
     fun readerTheme() = rxPrefs.getInteger(keys.readerTheme, 0)
+
+    fun cropBorders() = rxPrefs.getBoolean(keys.cropBorders, false)
 
     fun readWithTapping() = rxPrefs.getBoolean(keys.readWithTapping, true)
 
@@ -140,7 +142,9 @@ class PreferencesHelper(val context: Context) {
 
     fun hiddenCatalogues() = rxPrefs.getStringSet("hidden_catalogues", emptySet())
 
-    fun downloadNew() = prefs.getBoolean(keys.downloadNew, false)
+    fun downloadNew() = rxPrefs.getBoolean(keys.downloadNew, false)
+
+    fun downloadNewCategories() = rxPrefs.getStringSet(keys.downloadNewCategories, emptySet())
 
     fun lang() = prefs.getString(keys.lang, "")
 

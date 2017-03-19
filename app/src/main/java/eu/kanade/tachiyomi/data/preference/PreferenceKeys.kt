@@ -41,6 +41,8 @@ class PreferenceKeys(context: Context) {
 
     val readerTheme = context.getString(R.string.pref_reader_theme_key)
 
+    val cropBorders = context.getString(R.string.pref_crop_borders_key)
+
     val readWithTapping = context.getString(R.string.pref_read_with_tapping_key)
 
     val readWithVolumeKeys = context.getString(R.string.pref_read_with_volume_keys_key)
@@ -90,6 +92,8 @@ class PreferenceKeys(context: Context) {
     val startScreen = context.getString(R.string.pref_start_screen_key)
 
     val downloadNew = context.getString(R.string.pref_download_new_key)
+
+    val downloadNewCategories = context.getString(R.string.pref_download_new_categories_key)
 
     fun sourceUsername(sourceId: Long) = "pref_source_username_$sourceId"
 

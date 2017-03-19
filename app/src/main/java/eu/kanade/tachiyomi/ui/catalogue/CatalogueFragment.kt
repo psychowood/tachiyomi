@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.v4.widget.DrawerLayout
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.*
 import android.view.*
 import android.widget.ArrayAdapter
@@ -16,7 +17,6 @@ import eu.davidea.flexibleadapter.items.IFlexible
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.database.models.Manga
 import eu.kanade.tachiyomi.source.model.FilterList
-import eu.kanade.tachiyomi.source.online.LoginSource
 import eu.kanade.tachiyomi.ui.base.fragment.BaseRxFragment
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.manga.MangaActivity
@@ -151,20 +151,12 @@ open class CatalogueFragment : BaseRxFragment<CataloguePresenter>(),
     }
 
     override fun onViewCreated(view: View, savedState: Bundle?) {
-        // If the source list is empty or it only has unlogged sources, return to main screen.
-        val sources = presenter.sources
-        if (sources.isEmpty() || sources.all { it is LoginSource && !it.isLogged() }) {
-            context.toast(R.string.no_valid_sources)
-            activity.onBackPressed()
-            return
-        }
-
         // Initialize adapter, scroll listener and recycler views
         adapter = FlexibleAdapter(null, this)
         setupRecycler()
 
         // Create toolbar spinner
-        val themedContext = activity.supportActionBar?.themedContext ?: activity
+        val themedContext = (activity as AppCompatActivity).supportActionBar?.themedContext ?: activity
 
         val spinnerAdapter = ArrayAdapter(themedContext,
                 android.R.layout.simple_spinner_item, presenter.sources)
@@ -495,14 +487,10 @@ open class CatalogueFragment : BaseRxFragment<CataloguePresenter>(),
      * @return the holder of the manga or null if it's not bound.
      */
     private fun getHolder(manga: Manga): CatalogueHolder? {
-        val layoutManager = recycler.layoutManager as LinearLayoutManager
-        val firstVisiblePos = layoutManager.findFirstVisibleItemPosition()
-        val lastVisiblePos = layoutManager.findLastVisibleItemPosition()
-
-        (firstVisiblePos..lastVisiblePos-1).forEach { i ->
-            val item = adapter.getItem(i) as? CatalogueItem
+        adapter.allBoundViewHolders.forEach { holder ->
+            val item = adapter.getItem(holder.adapterPosition) as? CatalogueItem
             if (item != null && item.manga.id!! == manga.id!!) {
-                return recycler.findViewHolderForLayoutPosition(i) as? CatalogueHolder
+                return holder as CatalogueHolder
             }
         }
 
