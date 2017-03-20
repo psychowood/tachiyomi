@@ -1,24 +1,16 @@
-| Build | Download | F-Droid |
-|-------|----------|-------------|
-| [![TeamCity (simple build status)](https://img.shields.io/teamcity/https/teamcity.kanade.eu/s/tachiyomi_Build.svg)](https://teamcity.kanade.eu/project.html?projectId=tachiyomi) [![Travis](https://img.shields.io/travis/inorichi/tachiyomi.svg)](https://travis-ci.org/inorichi/tachiyomi) | [![stable release](https://img.shields.io/github/release/inorichi/tachiyomi.svg?maxAge=3600&label=stable)](https://github.com/inorichi/tachiyomi/releases) [![latest dev build](https://img.shields.io/badge/dev-latest%20build-blue.svg)](http://tachiyomi.kanade.eu/latest/app-debug.apk) | [![fdroid release](https://img.shields.io/badge/stable-f--droid.org-blue.svg)](https://f-droid.org/repository/browse/?fdid=eu.kanade.tachiyomi) [![fdroid dev](https://img.shields.io/badge/dev-wiki-blue.svg)](//github.com/inorichi/tachiyomi/wiki/FDroid-for-dev-versions) |
+# Differences from the official repository
 
-## [Report an issue](https://github.com/inorichi/tachiyomi/blob/master/.github/CONTRIBUTING.md)
+This repository contains some backward compatible builds of Tachiyomi specifically *forced* to run on for Android 4.0.3 or 4.0.4. Head over to the [official repo](https://github.com/inorichi/tachiyomi) for the 
 
-**Before reporting a new issue, take a look at the [FAQ](https://github.com/inorichi/tachiyomi/wiki/FAQ), the [changelog](https://github.com/inorichi/tachiyomi/releases) and the already opened issues.**
+It will probably crash if you try to use some non-basic features (e.g. I've never tried changing the default theme), it is more or less expected.
 
-Tachiyomi is a free and open source manga reader for Android.
+I'm currently building and using it on a Onyx Boox i86MLHD w/ Android 4.0.4, and it works flawlessly for downloading, reading, backing up settings and library for a few hours a day, without any crash. 
 
-Keep in mind it's still a beta, so expect it to crash sometimes.
+All the builds are debug builds, please disable the error reporting (if you had it enabled) to prevent sending wrong reports to inorichi.
 
-# Features
+## Known errors/force close causes and workarounds
 
-* Online and offline reading
-* Configurable reader with multiple viewers and settings
-* MyAnimeList support
-* Resume from the next unread chapter
-* Chapter filtering
-* Schedule searching for updates
-* Categories to organize your library
+- Disable "Download only over WiFi" setting: it uses an unsupported API
 
 ## License
 
