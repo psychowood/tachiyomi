@@ -50,7 +50,7 @@ class SettingsAboutFragment : SettingsFragment() {
         val buildTime = findPreference(getString(R.string.pref_build_time))
         val acra = findPreference(getString(R.string.pref_acra_summary))
 
-        version.summary = if (BuildConfig.DEBUG)
+        version.summary = "sdk15-" + if (BuildConfig.DEBUG)
             "r" + BuildConfig.COMMIT_COUNT
         else
             BuildConfig.VERSION_NAME

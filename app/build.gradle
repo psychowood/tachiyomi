@@ -39,7 +39,7 @@ android {
         targetSdkVersion 15
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         versionCode 21
-        versionName "0.5.1"
+        versionName "0.5.1-sdk15"
 
         buildConfigField "String", "COMMIT_COUNT", "\"${getCommitCount()}\""
         buildConfigField "String", "COMMIT_SHA", "\"${getGitSha()}\""
