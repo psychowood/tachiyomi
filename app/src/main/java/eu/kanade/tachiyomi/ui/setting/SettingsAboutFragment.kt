@@ -48,6 +48,7 @@ class SettingsAboutFragment : SettingsFragment() {
 
         val version = findPreference(getString(R.string.pref_version))
         val buildTime = findPreference(getString(R.string.pref_build_time))
+        val acra = findPreference(getString(R.string.pref_acra_summary))
 
         version.summary = if (BuildConfig.DEBUG)
             "r" + BuildConfig.COMMIT_COUNT
